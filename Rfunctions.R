@@ -137,7 +137,12 @@ rename.level = function(df,include.na = NULL, ordered){
 
 
 # goood stuff
-.BucketEnv = new.env()
+if("bucket.RData" %in% dir()){
+  load("bucket.RData",.BucketEnv)
+}
+if(!"bucket.RData" %in% dir()){
+  .BucketEnv = new.env()
+}
 bucket = function(...,add = F,env = .BucketEnv,short=T,rmv=F,filef = "bucket.RData"){
   # Exit if add=F and empty bucket
   if(!add & length(as.list(env))==0 & !rmv){
