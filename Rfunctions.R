@@ -3,8 +3,18 @@
 main = function(){
   source("main.R")
 }
-# dev.set(dev.list()[???]])
-#
+
+# Set graphics device to windows
+dev.win = function(){
+  if("windows" %in% names(dev.list())){
+    dev.set(dev.list()["windows"])
+  }
+  if(!"windows" %in% names(dev.list())){
+    windows()
+  }
+}
+
+# Unique values of each column in a data fram
 unique.data = function(df){
   return(lapply(df,unique))
 }
@@ -252,8 +262,14 @@ bucket.classes = function(destination = .BucketEnv,classes,from=.GlobalEnv,...){
     for(j in 1:length(tmp)){
       if(length(tmp) > 0 && !is.null(tmp) && tmp.class[[j]] %in% classes){
         obj = tmp[[j]]
-        ifelse(is.null(names(tmp)[j]),nameend <- "", nameend <- names(tmp)[j])
-        assign(paste0(varz[i],"_",nameend),obj,envir = destination)
+        # ifelse(is.null(names(tmp)[j]),nameend <- "", nameend <- names(tmp)[j])
+        # assign(paste0(varz[i],"_",nameend),obj,envir = destination)
+        if(is.null(names(tmp)[j])){
+          assign(paste0(varz[i]),obj,envir = destination)
+        }
+        if(!is.null(names(tmp)[j])){
+          assign(paste0(varz[i],"_",names(tmp)[j]),obj,envir = destination)
+        }
       }
     }
   }
@@ -516,7 +532,21 @@ invert.level = function(x,vars = NULL){
   return(x)
 }
 
-
+# Chronebach's alpha recursive
+alpha.recursive = function(dta){
+  x = alpha(dta)
+  whch = which.max(x$alpha.drop$raw_alpha)
+  if(x$alpha.drop$raw_alpha[whch] > x$total$raw_alpha){
+    print(paste0(rownames(x$alpha.drop)[whch],": ",
+                 round(x$alpha.drop$raw_alpha[whch],3)," vs ",
+                 round(x$total$raw_alpha,3)))
+    print("--------------")
+    return(alpha.recursive(dta[,-whch]))
+  }
+  if(!x$alpha.drop$raw_alpha[whch] > x$total$raw_alpha){
+    return(dta)
+  }
+}
 
 
 # Gymnasium 2 functions ---------------------------------------------------
