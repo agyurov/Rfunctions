@@ -147,13 +147,22 @@ rename.level = function(df,include.na = NULL, ordered){
 
 
 # goood stuff
+.BucketEnv = new.env()
 if("bucket.RData" %in% dir()){
   load("bucket.RData",.BucketEnv)
 }
-if(!"bucket.RData" %in% dir()){
-  .BucketEnv = new.env()
-}
-bucket = function(...,add = F,env = .BucketEnv,short=T,rmv=F,filef = "bucket.RData"){
+bucket = function(...,add = F,env = .BucketEnv,short=T,rmv=F,filef = "bucket.RData",empty.bucket=F){
+  #
+  if(empty.bucket){
+    ans = readline("Empty the bucket? yes/no \n")
+    if(ans == "yes"){
+      env = new.env()
+      return(invisible(NULL))
+    }
+    if(ans != "yes"){
+      return(invisible(NULL))
+    }
+  }
   # Exit if add=F and empty bucket
   if(!add & length(as.list(env))==0 & !rmv){
     cat("Empty bucket, nothing to find here.\n")
@@ -178,8 +187,6 @@ bucket = function(...,add = F,env = .BucketEnv,short=T,rmv=F,filef = "bucket.RDa
   
   # Check for existence
   out = arg %in% ls(env)
-  print("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOUT")
-  print(arg)
   # -----------------------------------------
   # Return from bucket
   if(!add & !rmv){
@@ -310,8 +317,20 @@ record = function(file = data_file){
 }
 
 # data frame factor to numerics
-fact2num = function(y){
-  return(do.call(cbind.data.frame,lapply(y[,unlist(lapply(y,is.factor))],function(x) as.numeric(as.character(x)))))
+fact2num = function(y,all=NULL){
+  if(is.null(all)){
+    print("opt1")
+    for(i in 1:ncol(y)){
+      y[,i] = as.numeric(as.character(y[,i]))
+    }
+    return(y)
+  }else{
+    print("opt2")
+   for(i in all){
+     y[,i] = as.numeric(as.character(y[,i]))
+   }
+    return(y)
+  }
 }
 
 # Brute force PCA, returning the PCs
@@ -564,7 +583,6 @@ fill.levels = function(x,y,...){
 }
 
 # Rename factor levels new
-
 rm.char.factor = function(x){
   # x the factor vector
   if(is.factor(x)){
@@ -582,4 +600,11 @@ rm.char.factor = function(x){
   }
 }
 
+# Cramer's V
+cv.test = function(x,y) {
+  CV = sqrt(chisq.test(x, y, correct=FALSE)$statistic /
+              (length(x) * (min(length(unique(x)),length(unique(y))) - 1)))
+  print.noquote("Cramér V / Phi:")
+  return(as.numeric(CV))
+}
 
