@@ -248,7 +248,7 @@ bucket = function(...,add = F,env = .BucketEnv,short=T,rmv=F,filef = "bucket.RDa
     }
   }
   # save(list=ls(envir = .BucketEnv),file=paste0(getwd(),"/",filef),envir = env)
-  with(env,save.image(paste0(getwd(),"/",filef)))
+  with(env,save.image(paste0(getwd(),"/",filOef)))
 }
 
 # Add classes to bucket
