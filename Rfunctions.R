@@ -404,7 +404,7 @@ model.list = function(pred,resp, ...){
 }
 
 # model.list + warnings parameter
-model.listZ = function(pred,resp,exclude.warnings=F, ...){
+model.listZ = function(pred,resp,exclude.warnings=T, ...){
   # x predictors
   # y responses
   clms = list()
@@ -430,6 +430,42 @@ model.listZ = function(pred,resp,exclude.warnings=F, ...){
       }
       if(!exclude.warnings){
         clms[[i]] <- step(clm(formula=frmla,data=df,...),test="Chisq",trace = 0)
+      }
+    }
+  }
+  
+  names(clms) = names(resp)
+  clms = clms[clms!="bad"]
+  return(clms)
+}
+
+# model.list + warnings parameter + second order interactions
+model.listZ2 = function(pred,resp,exclude.warnings=T,order=2,trace=0, ...){
+  # x predictors
+  # y responses
+  clms = list()
+  pred = as.data.frame(pred)
+  resp = as.data.frame(resp)
+  
+  for(i in 1:ncol(resp)){
+    cat(paste0("Estimating model ",i," of ", ncol(resp),"\n"))
+    df = cbind(pred,Y=resp[,i])
+    frmla =  as.formula(paste0("Y"," ~ ","( ",paste0(names(pred),collapse=" + ")," )^",order))
+    # perform LM if numeric
+    if(is.numeric(df$Y)){
+      clms[[i]] = step(lm(formula=frmla,data=df,...),test="F",trace = trace)
+    }
+    # perform CLM if ordinal
+    if(!is.numeric(df$Y)){
+      if(exclude.warnings){
+        clms[[i]] <- step(clm(formula=frmla,data=df,...),test="Chisq",trace = trace)
+        if(clms[[i]]$convergence$code != 0){
+          cat(paste0("CLM convergence code for i = ",i," is ", clms[[i]]$convergence$code,"...\n"))
+          clms[i] = "bad"
+        }
+      }
+      if(!exclude.warnings){
+        clms[[i]] <- step(clm(formula=frmla,data=df,...),test="Chisq",trace = trace)
       }
     }
   }
