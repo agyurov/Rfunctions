@@ -284,23 +284,17 @@ bucket.classes = function(destination = .BucketEnv,classes,from=.GlobalEnv,...){
 
 # break list into list of non list objects 
 break.list = function(x){
-  out = list()
-  if(class(x) == "list" & length(x) > 0){
-    for(i in 1:length(x)){
-      if(length(x[[i]]) > 0){
-        out[[i]] = break.list(x[[i]])
-        if(is.null(names(x))){
-          names(out)[i] = paste0(names(x)[i],"NEW_",i)
-        }else{
-          names(out)[i] = names(x)[i]
-        }
-        
-      }
-    }
-    return(out)
+  if(class(x) != "list" & class(x) == "clm"){
+    return(list(x))
   }
-  if(!class(x) == "list"){
-    out = x
+  if(class(x) != "list"){
+    return(x)
+  }
+  if(class(x) == "list" & length(x) > 0 ){
+    out = NULL
+    for(i in 1:length(x)){
+      out = c(out,break.list(x[[i]]))
+    }
     return(out)
   }
 }
@@ -408,19 +402,24 @@ model.listZ = function(pred,resp,exclude.warnings=T, ...){
   # x predictors
   # y responses
   clms = list()
+  resp.name = names(resp)
   pred = as.data.frame(pred)
   resp = as.data.frame(resp)
   
   for(i in 1:ncol(resp)){
     cat(paste0("Estimating model ",i," of ", ncol(resp),"\n"))
     df = cbind(pred,Y=resp[,i])
-    frmla = as.formula(paste0("Y"," ~ ",paste0(names(pred),collapse=" + ")))
+    names(df) = c(names(df)[-ncol(df)],resp.name[i])
+    # frmla = as.formula(paste0("Y"," ~ ",paste0(names(pred),collapse=" + ")))
+    frmla = as.formula(paste0(names(resp)[i]," ~ ",paste0(names(pred),collapse=" + ")))
     # perform LM if numeric
-    if(is.numeric(df$Y)){
+    if(is.numeric(df[,ncol(df)])){
+    # if(is.numeric(df[[names(resp)[i]]])){
       clms[[i]] = step(lm(formula=frmla,data=df,...),test="F",trace = 0)
     }
     # perform CLM if ordinal
-    if(!is.numeric(df$Y)){
+    if(!is.numeric(df[,ncol(df)])){
+    # if(!is.numeric(df[[names(resp)[i]]])){
       if(exclude.warnings){
         clms[[i]] <- step(clm(formula=frmla,data=df,...),test="Chisq",trace = 0)
         if(clms[[i]]$convergence$code != 0){
@@ -444,19 +443,21 @@ model.listZ2 = function(pred,resp,exclude.warnings=T,order=2,trace=0, ...){
   # x predictors
   # y responses
   clms = list()
+  resp.name = names(resp)
   pred = as.data.frame(pred)
   resp = as.data.frame(resp)
   
   for(i in 1:ncol(resp)){
     cat(paste0("Estimating model ",i," of ", ncol(resp),"\n"))
     df = cbind(pred,Y=resp[,i])
-    frmla =  as.formula(paste0("Y"," ~ ","( ",paste0(names(pred),collapse=" + ")," )^",order))
+    names(df) = c(names(df)[-ncol(df)],resp.name[i])
+    frmla =  as.formula(paste0(names(resp)[i]," ~ ","( ",paste0(names(pred),collapse=" + ")," )^",order))
     # perform LM if numeric
-    if(is.numeric(df$Y)){
+    if(is.numeric(df[,ncol(df)])){
       clms[[i]] = step(lm(formula=frmla,data=df,...),test="F",trace = trace)
     }
     # perform CLM if ordinal
-    if(!is.numeric(df$Y)){
+    if(!is.numeric(df[,ncol(df)])){
       if(exclude.warnings){
         clms[[i]] <- step(clm(formula=frmla,data=df,...),test="Chisq",trace = trace)
         if(clms[[i]]$convergence$code != 0){
