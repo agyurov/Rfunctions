@@ -411,7 +411,7 @@ model.listZ = function(pred,resp,exclude.warnings=T, ...){
     df = cbind(pred,Y=resp[,i])
     names(df) = c(names(df)[-ncol(df)],resp.name[i])
     # frmla = as.formula(paste0("Y"," ~ ",paste0(names(pred),collapse=" + ")))
-    frmla = as.formula(paste0(names(resp)[i]," ~ ",paste0(names(pred),collapse=" + ")))
+    frmla = as.formula(paste0(names(resp)[i]," ~ - 1 + ",paste0(names(pred),collapse=" + ")))
     # perform LM if numeric
     if(is.numeric(df[,ncol(df)])){
     # if(is.numeric(df[[names(resp)[i]]])){
@@ -451,7 +451,7 @@ model.listZ2 = function(pred,resp,exclude.warnings=T,order=2,trace=0, ...){
     cat(paste0("Estimating model ",i," of ", ncol(resp),"\n"))
     df = cbind(pred,Y=resp[,i])
     names(df) = c(names(df)[-ncol(df)],resp.name[i])
-    frmla =  as.formula(paste0(names(resp)[i]," ~ ","( ",paste0(names(pred),collapse=" + ")," )^",order))
+    frmla =  as.formula(paste0(names(resp)[i]," ~ - 1 + ","( ",paste0(names(pred),collapse=" + ")," )^",order))
     # perform LM if numeric
     if(is.numeric(df[,ncol(df)])){
       clms[[i]] = step(lm(formula=frmla,data=df,...),test="F",trace = trace)
@@ -612,8 +612,10 @@ fill.levels = function(x,y,...){
   # x the data frame
   # y the qustions as character vector
   tmp = x[,grepl(y,names(x),fixed=T)]
-  maxlev = which.max(unlist(lapply(tmp,function(x) length(levels(x)))))
-  maxlev = levels(tmp[,maxlev])
+  # maxlev = which.max(unlist(lapply(tmp,function(x) length(levels(x)))))
+  # maxlev = levels(tmp[,maxlev])
+  maxlev = do.call(c,lapply(tmp,levels))
+  maxlev = unique(maxlev)
   tmp = do.call(cbind.data.frame,lapply(tmp,function(x,y) x=factor(x,levels=y),y=maxlev))
   x[,grepl(y,names(x),fixed=T)] = tmp
   return(x)
