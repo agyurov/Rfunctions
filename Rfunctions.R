@@ -359,17 +359,20 @@ plot.loadings = function(x,...){
 my.barplot = function(x, namez, ...){
   b = barplot(x, names.arg=NA,...)
   text(y=par("usr")[3],x = b, labels=namez,srt=45,xpd=NA,...)
+  return(invisible(b))
 }
 
 # predicted classifications from CLM
 class.pred = function(model){
-  tbl = table(model$y,predict(model,type="class")$fit,useNA = "no")
+  tbl = table(true = model$y,model = predict(model,type="class")$fit,useNA = "no")
   perc = round(diag(tbl)/rowSums(tbl),2)
   pergroup = rowSums(tbl)
   total = sum(pergroup)
   perc2 = round(perc*pergroup/total,2)
+  fk = expand.grid(model$xlevels)
+  fk = cbind(fk,round(predict(model,newdata = fk)$fit,2))
   return(list(table = tbl, percentages = perc,
-              pop = pergroup, total = sum(perc2)))
+              pop = pergroup, total = sum(perc2), oddz = fk))
 }
 
 # Predicting a questions. df of the form cbind(Q1,Q2)
@@ -398,7 +401,7 @@ model.list = function(pred,resp, ...){
 }
 
 # model.list + warnings parameter
-model.listZ = function(pred,resp,exclude.warnings=T, ...){
+model.listZ = function(pred,resp,exclude.warnings=T,stepaic=F, ...){
   # x predictors
   # y responses
   clms = list()
@@ -411,7 +414,7 @@ model.listZ = function(pred,resp,exclude.warnings=T, ...){
     df = cbind(pred,Y=resp[,i])
     names(df) = c(names(df)[-ncol(df)],resp.name[i])
     # frmla = as.formula(paste0("Y"," ~ ",paste0(names(pred),collapse=" + ")))
-    frmla = as.formula(paste0(names(resp)[i]," ~ - 1 + ",paste0(names(pred),collapse=" + ")))
+    frmla = as.formula(paste0(names(resp)[i]," ~ ",paste0(names(pred),collapse=" + ")))
     # perform LM if numeric
     if(is.numeric(df[,ncol(df)])){
     # if(is.numeric(df[[names(resp)[i]]])){
@@ -428,7 +431,12 @@ model.listZ = function(pred,resp,exclude.warnings=T, ...){
         }
       }
       if(!exclude.warnings){
-        clms[[i]] <- step(clm(formula=frmla,data=df,...),test="Chisq",trace = 0)
+        if(!stepaic){
+          clms[[i]] <- step(clm(formula=frmla,data=df,...),test="Chisq",trace = 0)
+        }
+        if(stepaic){
+          clms[[i]] <- stepAIC(clm(formula=frmla,data=df,...),trace = 0)
+        }
       }
     }
   }
@@ -451,7 +459,7 @@ model.listZ2 = function(pred,resp,exclude.warnings=T,order=2,trace=0, ...){
     cat(paste0("Estimating model ",i," of ", ncol(resp),"\n"))
     df = cbind(pred,Y=resp[,i])
     names(df) = c(names(df)[-ncol(df)],resp.name[i])
-    frmla =  as.formula(paste0(names(resp)[i]," ~ - 1 + ","( ",paste0(names(pred),collapse=" + ")," )^",order))
+    frmla =  as.formula(paste0(names(resp)[i]," ~ ","( ",paste0(names(pred),collapse=" + ")," )^",order))
     # perform LM if numeric
     if(is.numeric(df[,ncol(df)])){
       clms[[i]] = step(lm(formula=frmla,data=df,...),test="F",trace = trace)
@@ -589,14 +597,14 @@ invert.level = function(x,vars = NULL){
 }
 
 # Chronebach's alpha recursive
-alpha.recursive = function(dta){
-  x = alpha(dta)
+alpha.recursive = function(dta,...){
+  x = alpha(dta,...)
   whch = which.max(x$alpha.drop$raw_alpha)
   if(x$alpha.drop$raw_alpha[whch] > x$total$raw_alpha){
-    print(paste0(rownames(x$alpha.drop)[whch],": ",
-                 round(x$alpha.drop$raw_alpha[whch],3)," vs ",
-                 round(x$total$raw_alpha,3)))
-    print("--------------")
+    # print(paste0(rownames(x$alpha.drop)[whch],": ",
+    #              round(x$alpha.drop$raw_alpha[whch],3)," vs ",
+    #              round(x$total$raw_alpha,3)))
+    # print("--------------")
     return(alpha.recursive(dta[,-whch]))
   }
   if(!x$alpha.drop$raw_alpha[whch] > x$total$raw_alpha){
